@@ -133,3 +133,6 @@ dmypy.json
 # etc
 .idea
 .DS_Store
+
+
+labsAppFramework/pcaInFi/analysis.py

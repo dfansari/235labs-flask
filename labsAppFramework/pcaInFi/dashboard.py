@@ -1,4 +1,6 @@
 """Instantiate a Dash app."""
+from datetime import datetime
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -6,7 +8,7 @@ import dash_table
 import pandas as pd
 import plotly.graph_objs as go
 
-from .data import create_dataframe_ust, convert_ust_tenor_to_years, get_ust_correlation_frame
+from .data import YieldData, convert_ust_tenor_to_years
 from .layout import html_layout
 
 text_intro = """
@@ -48,71 +50,91 @@ def init_dashboard(server):
         ],
     )
 
-    # Load DataFrame
-    df_ust = create_dataframe_ust()
-    last_date = df_ust.index.max()
+    # Load Data Object
+    yield_data = YieldData()
 
-    df_ust_plot = pd.DataFrame(df_ust.loc[last_date])
+    # Format Plot Data
+    last_date = yield_data.data.index.max()
+    df_ust_plot = pd.DataFrame(yield_data.data.loc[last_date])
     df_ust_plot.index = [convert_ust_tenor_to_years(ust_tenor) for ust_tenor in df_ust_plot.index]
-
-    df_ust_corr_matrix = get_ust_correlation_frame(df_ust)
 
     # Custom HTML layout
     dash_app.index_string = html_layout
+
+    graph_yield_curve = dcc.Graph(
+        id="graph-ust-curve",
+        figure=dict(
+            data=[
+                go.Scatter(
+                    x=df_ust_plot.index,
+                    y=df_ust_plot[last_date] / 100
+                )
+            ],
+            layout=dict(
+                title=f"US Treasury Yield Curve: {datetime.strftime(last_date, '%Y.%m.%d')}",
+                height=400,
+                width=800,
+                padding=50,
+                xaxis=dict(title='Security Duration (years)'),
+                yaxis=dict(title='Yield', tickformat=',.1%', )
+            )
+        ),
+    )
+
+    graph_ust_correlation = dcc.Graph(
+        id="graph-ust-correlation",
+        figure=dict(
+            data=[
+                get_heatmap_plot(yield_data.correlation_matrix,
+                                 hovertemplate='Tenor 1: %{x}<br>Tenor 2: %{y}<br>Correlation: %{z}<extra></extra>')
+            ],
+            layout=dict(
+                title=f"UST Tenor Correlation Matrix, 1day bp changes",
+                height=500,
+                padding=150,
+            )
+        ),
+    )
+
+    data = yield_data.gaussian_test_by_year
+    graph_ust_normality = dcc.Graph(
+        id="graph-ust-normality",
+        figure=dict(
+            data=[
+                get_heatmap_plot(yield_data.gaussian_test_by_year,
+                                 colorscale=[[0, "rgb(255,255,255)"],
+                                             [0.10, "rgb(90,220,200)"],
+                                             [1, "rgb(43, 204, 162)"]],
+                                 hovertemplate='Year: %{x:.0f}<br>Tenor: %{y}<br>P-value: %{z}<extra></extra>'
+                                 )
+            ],
+            layout=dict(
+                title=f"UST D'Agostino Gaussian Distribution Test, 1day bp changes",
+                height=500,
+                padding=150,
+            )
+        ),
+    )
+
 
     # Create Layout
     dash_app.layout = html.Div(
         children=[
                      html.H1("Understanding Yield Curve Dynamics through Principle Component Analysis"),
+                     graph_yield_curve,
                      html.P(text_intro),
                      html.P(text_body_1a)
-        ] +
-        links_body +
-        [
-             dcc.Graph(
-                 id="graph-ust-curve",
-                 figure=dict(
-                     data=[
-                         go.Scatter(
-                             x=df_ust_plot.index,
-                             y=df_ust_plot[last_date]/100
-                         )
-                     ],
-                     layout=dict(
-                         title=f"US Treasury Yield Curve: {last_date}",
-                         height=400,
-                         width=800,
-                         padding=50,
-                         xaxis=dict(title='Security Duration (years)'),
-                         yaxis=dict(title='Yield', tickformat=',.1%',)
-                     )
-                 ),
-             ),
-             html.P(text_body_1b),
-             dcc.Graph(
-                 id="graph-ust-correlation",
-                 figure=dict(
-                     data=[
-                         go.Heatmap(
-                             z=df_ust_corr_matrix.T.values,
-                             x=df_ust_corr_matrix.T.index,
-                             y=df_ust_corr_matrix.T.columns,
-                             xgap=1, ygap=1,
-                             colorscale=[[0, "rgb(255,255,255)"], [1, "rgb(43, 204, 162)"]]
-                         )
-                     ],
-                     layout=dict(
-                         title=f"UST Tenor Correlation Matrix",
-                         height=500,
-                         padding=150,
-                     )
-                 ),
-             ),
-             html.H3("Raw Data"),
-             create_data_table(df_ust.reset_index()),
-             html.A('Data Source',
-                    href="https://www.treasury.gov/resource-center/data-chart-center/interest-rates/pages/TextView.aspx?data=yieldYear&year=2008"),
-        ],
+                 ] +
+                 links_body +
+                 [
+                     html.P(text_body_1b),
+                     graph_ust_correlation,
+                     graph_ust_normality,
+                     html.H3("Raw Data"),
+                     create_data_table(yield_data.data.reset_index()),
+                     html.A('Data Source',
+                            href="https://www.treasury.gov/resource-center/data-chart-center/interest-rates/pages/TextView.aspx?data=yieldYear&year=2008"),
+                 ],
         id="dash-container",
     )
     return dash_app.server
@@ -136,3 +158,15 @@ def create_data_table(df):
         )
     )
     return table
+
+
+def get_heatmap_plot(data, colorscale=[[0, "rgb(255,255,255)"], [1, "rgb(43, 204, 162)"]],
+                     hovertemplate=None):
+    return go.Heatmap(
+        z=data.values,
+        y=data.index,
+        x=data.columns,
+        xgap=1, ygap=1,
+        colorscale=colorscale,
+        hovertemplate=hovertemplate
+    )

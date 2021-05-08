@@ -1,12 +1,20 @@
-"""Prepare data for Plotly Dash."""
-import numpy as np
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+from scipy.stats import normaltest
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
 import pandas as pd
+import numpy as np
+
+from labsAppFramework.pcaInFi.data import *
 
 
 def create_dataframe_ust():
     df = pd.read_csv("data/ust_data.csv", parse_dates=["date"])
-    df["date"] = df["date"].dt.date
-    df.replace("N/A", np.nan, inplace=True)
+    df["date"] = pd.to_datetime(df["date"].dt.date)
+    df = df.loc[:, df.columns != '2mo']
+    # df.replace("N/A", np.nan, inplace=True)
     df.set_index('date', inplace=True)
     return df
 
@@ -18,15 +26,78 @@ def convert_ust_tenor_to_years(ust_tenor):
         return float(ust_tenor[:-2])
 
 
-def get_ust_correlation_frame(df_ust_raw):
-    df_ust = df_ust_raw.loc[:, df_ust_raw.columns != '2mo']
-    df_ust_diff = df_ust.diff()
-
+def get_ust_correlation_frame(df_ust_chg):
     # Calculate Correlation
-    df_ust_corr_matrix = df_ust_diff.corr().round(2)
+    df_ust_corr_matrix = df_ust_chg.corr().round(2)
     for r in range(len(df_ust_corr_matrix.index)):
         for c in range(len(df_ust_corr_matrix.columns)):
             if c >= r:
                 df_ust_corr_matrix.iloc[r, c] = np.nan
 
     return df_ust_corr_matrix
+
+
+def test_normality_by_year(df_yield_chg, bucketed_years=1):
+    df_yield_chg = df_yield_chg.dropna()
+
+    years = []
+    tenors = []
+    p_values = []
+    for year in df_yield_chg.index.year.unique():
+        years_list = [year - i for i in range(bucketed_years)]
+        df_yield_chg_annual = df_yield_chg.loc[df_yield_chg.index.year.isin(years_list)]
+        for tenor in df_yield_chg_annual.columns:
+            stat, p = normaltest(df_yield_chg_annual[tenor].values)
+            years.append(year)
+            tenors.append(tenor)
+            p_values.append(round(p, 5))
+
+    df_gaussian_test = pd.pivot_table(pd.DataFrame(dict(year=years, tenor=tenors, p_value=p_values)),
+                                      index='tenor', columns='year', values='p_value', aggfunc='mean')
+    df_gaussian_test = df_gaussian_test.loc[df_yield_chg_annual.columns, :]
+
+    return df_gaussian_test
+
+
+class PcaAnalysis():
+    def __init__(self, data, normalized=False):
+        self.data = data
+        self.normalized = normalized
+
+        X = data.dropna()
+        if normalized:
+            scaler = StandardScaler().fit(X)
+            X = scaler.transform(X)
+            self.scaler = scaler
+
+        pca = PCA(n_components=5)
+        pca.fit(X)
+        factor_loading = pd.DataFrame(pca.components_)
+
+        if normalized:
+            factor_loading_bps = pd.DataFrame(scaler.inverse_transform(factor_loading))
+            self.factor_loading_bps = factor_loading_bps
+
+        # variance percent of each PC
+        explained_variance = pd.DataFrame(data=pca.explained_variance_ratio_) * 100
+        explained_variance = explained_variance.reset_index() \
+            .rename(columns={'index': 'eigen_vector', 0: 'explained_variance'}).set_index('eigen_vector')
+
+        self.pca_fitted = pca
+        self.factor_loading = factor_loading
+        self.explained_variance = explained_variance
+
+
+class YieldData:
+    def __init__(self):
+        self.data = create_dataframe_ust()
+        self.data_chg = self.data.diff().iloc[1:] * 100  # move in basis points
+        self.correlation_matrix = get_ust_correlation_frame(self.data_chg)
+        self.gaussian_test_by_year = test_normality_by_year(self.data_chg, bucketed_years=1)
+        self.gaussian_test_aggregate = \
+            test_normality_by_year(self.data_chg,
+                                   bucketed_years=len(self.data_chg.index.year.unique())) \
+                [[self.data_chg.index.year.max()]]
+        self.pca = PcaAnalysis(self.data_chg, normalized=False)
+        self.pca_normalized = PcaAnalysis(self.data_chg, normalized=True)
+
