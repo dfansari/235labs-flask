@@ -37,7 +37,8 @@ header .nav-wrapper a{color:#70829d;font-size:1em;text-decoration:none;transitio
 
 .home-template .card{
     width:800px;max-width:93%;height:fit-content;margin:50px auto;
-    padding:60px;background:white;box-shadow:0 0 5px rgba(65,67,144,0.15);text-align:center
+    padding:60px;background:white;box-shadow:0 0 5px rgba(65,67,144,0.15);
+    text-align:center
 }
 
 @media(max-width:800px){.home-template .card{max-width:78%;width:unset;padding:40px}}
@@ -158,3 +159,15 @@ table tbody tr td{
     margin-bottom:30px;padding-bottom:176px!important;overflow:hidden;border-radius:4px;
     background:white;box-shadow:0 0 4px #cdd3e2}.main-svg{overflow:visible!important
 }header .nav-wrapper{width:1200px!important}
+
+#resume {
+    text-align: left!important;
+}
+
+#resume-intro p {
+    text-align: left!important;
+}
+
+#projects-intro p {
+    text-align: left!important;
+}

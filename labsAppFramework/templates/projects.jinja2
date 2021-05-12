@@ -1,0 +1,20 @@
+{% extends "layout.jinja2" %}
+
+{% block content %}
+<div class="card" id="projects-intro">
+  <img src="{{ url_for('static', filename='img/logo_235labs.png') }}" class="logo" />
+  <br>
+  <p class="subtitle">As a data analyst, these projects are manifestations of my excitement
+  to explore the world through a quantitative lens, and turn those observations into actionable insights</p>
+  <br>
+  <p class="subtitle">The source code for all featured analytics can be found on my <a href="https://github.com/dfansari/235labs-flask">Github</a></p>
+</div>
+
+<div class="card">
+  <a href="/pca-for-yield-curves/" class="dash-link">
+    <span>PCA as a Foundation for Fixed Income Analysis</span>
+    <i class="fas fa-arrow-right"></i>
+  </a>
+</div>
+
+{% endblock %}

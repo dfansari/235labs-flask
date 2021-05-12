@@ -60,11 +60,12 @@ def test_normality_by_year(df_yield_chg, bucketed_years=1):
 
 
 class PcaAnalysis():
-    def __init__(self, data, normalized=False):
+    def __init__(self, data, normalized=False, tenors=None):
         self.data = data
         self.normalized = normalized
+        self.tenors = tenors
 
-        X = data.dropna()
+        X = data.dropna() if tenors is None else data[tenors].dropna()
         if normalized:
             scaler = StandardScaler().fit(X)
             X = scaler.transform(X)
@@ -72,11 +73,11 @@ class PcaAnalysis():
 
         pca = PCA(n_components=5)
         pca.fit(X)
-        factor_loading = pd.DataFrame(pca.components_)
+        eigen_vectors = pd.DataFrame(pca.components_).rename(columns={i: col for i, col in enumerate(data.columns)})
 
         if normalized:
-            factor_loading_bps = pd.DataFrame(scaler.inverse_transform(factor_loading))
-            self.factor_loading_bps = factor_loading_bps
+            eigen_vectors_bps = pd.DataFrame(scaler.inverse_transform(eigen_vectors))
+            self.eigen_vectors_bps = eigen_vectors_bps
 
         # variance percent of each PC
         explained_variance = pd.DataFrame(data=pca.explained_variance_ratio_) * 100
@@ -84,8 +85,18 @@ class PcaAnalysis():
             .rename(columns={'index': 'eigen_vector', 0: 'explained_variance'}).set_index('eigen_vector')
 
         self.pca_fitted = pca
-        self.factor_loading = factor_loading
+        self.eigen_vectors = eigen_vectors
         self.explained_variance = explained_variance
+
+    def get_eigen_plot_data(self, x, y, z, eigen_value=0):
+        eigen = self.eigen_vectors
+        eigen.loc[0, x]
+        eigen_x = [i for i in range(round(self.data[x].min()), round(self.data[x].max()))]
+        eigen_y = [(X / eigen.loc[eigen_value, x]) * eigen.loc[eigen_value, y] for X in eigen_x]
+        eigen_z = [(X / eigen.loc[eigen_value, x]) * eigen.loc[eigen_value, z] for X in eigen_x]
+        df_eigen = pd.DataFrame(dict(x=eigen_x, y=eigen_y, z=eigen_z))
+        df_eigen.columns = [x, y, z]
+        return df_eigen
 
 
 class YieldData:
@@ -100,4 +111,3 @@ class YieldData:
                 [[self.data_chg.index.year.max()]]
         self.pca = PcaAnalysis(self.data_chg, normalized=False)
         self.pca_normalized = PcaAnalysis(self.data_chg, normalized=True)
-

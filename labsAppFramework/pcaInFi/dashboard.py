@@ -58,6 +58,11 @@ def init_dashboard(server):
     df_ust_plot = pd.DataFrame(yield_data.data.loc[last_date])
     df_ust_plot.index = [convert_ust_tenor_to_years(ust_tenor) for ust_tenor in df_ust_plot.index]
 
+    df_eigen_table = yield_data.pca.eigen_vectors
+    df_eigen_table = df_eigen_table.divide(df_eigen_table['30yr'], axis=0).round(2)
+    df_eigen_table.index += 1
+    df_eigen_table = df_eigen_table.reset_index().rename(columns=dict(index='Eigen Vector'))
+
     # Custom HTML layout
     dash_app.index_string = html_layout
 
@@ -96,7 +101,6 @@ def init_dashboard(server):
         ),
     )
 
-    data = yield_data.gaussian_test_by_year
     graph_ust_normality = dcc.Graph(
         id="graph-ust-normality",
         figure=dict(
@@ -116,6 +120,12 @@ def init_dashboard(server):
         ),
     )
 
+    table_eigen_vectors = create_data_table(df_eigen_table, id='tbl-eigen-vectors')
+
+    graph_eigen_vectors = dcc.Graph(
+        id='graph-eigen-vectors',
+        figure=get_eigen_plot_fig(yield_data)
+    )
 
     # Create Layout
     dash_app.layout = html.Div(
@@ -130,8 +140,11 @@ def init_dashboard(server):
                      html.P(text_body_1b),
                      graph_ust_correlation,
                      graph_ust_normality,
+                     table_eigen_vectors,
+                     graph_eigen_vectors,
+
                      html.H3("Raw Data"),
-                     create_data_table(yield_data.data.reset_index()),
+                     create_data_table(yield_data.data.reset_index(), id='tbl-raw-data'),
                      html.A('Data Source',
                             href="https://www.treasury.gov/resource-center/data-chart-center/interest-rates/pages/TextView.aspx?data=yieldYear&year=2008"),
                  ],
@@ -140,22 +153,25 @@ def init_dashboard(server):
     return dash_app.server
 
 
-def create_data_table(df):
+def create_data_table(df, id):
     """Create Dash datatable from Pandas DataFrame."""
     table = dash_table.DataTable(
-        id="database-table",
+        id=id,
         columns=[{"name": i, "id": i} for i in df.columns],
         data=df.to_dict("records"),
         sort_action="native",
         sort_mode="native",
+        style_data=dict(
+            whiteSpace='normal'
+        ),
         style_table=dict(
             height='400px',
-            overflowY='auto'
+            #overflowY='auto'
         ),
-        fixed_rows=dict(headers=True),
-        style_cell=dict(
-            whiteSpace='normal'
-        )
+        #fixed_rows=dict(headers=True),
+        # style_cell=dict(
+        #     whiteSpace='normal'
+        # )
     )
     return table
 
@@ -170,3 +186,43 @@ def get_heatmap_plot(data, colorscale=[[0, "rgb(255,255,255)"], [1, "rgb(43, 204
         colorscale=colorscale,
         hovertemplate=hovertemplate
     )
+
+
+def get_eigen_plot_fig(yield_data, x='2yr', y='7yr', z='30yr'):
+    data = yield_data.data_chg
+    df_eigen_1 = yield_data.pca.get_eigen_plot_data(x, y, z, eigen_value=0)
+    df_eigen_2 = yield_data.pca.get_eigen_plot_data(x, y, z, eigen_value=1)
+
+    hover_template = 'i: %{x:.0f}<br>i: %{y}<br>i: %{z}<extra></extra>' \
+        .replace("i", x, 1).replace("i", y, 1).replace("i", z, 1)
+
+    fig = go.Figure(
+        data=[
+                 go.Scatter3d(x=data[x], y=data[y], z=data[z],
+                              mode='markers',
+                              marker=dict(
+                                  size=5,
+                                  opacity=0.7),
+                              name='Historic 1D Yield Changes',
+                              hovertemplate=hover_template
+                              ),
+             ] + [go.Scatter3d(x=dataframe[x], y=dataframe[y], z=dataframe[z],
+                               mode='lines',
+                               line=dict(
+                                   dash='dash',
+                                   color=['red', 'blue'][eigen]),
+                               name=f'Eigen Vector {eigen + 1}: '
+                                    f'{yield_data.pca.explained_variance.explained_variance[eigen]:.0f}% variance explained',
+                               hovertemplate=hover_template
+                               ) for eigen, dataframe in enumerate([df_eigen_1, df_eigen_2])],
+        layout=dict(
+            title='Daily UST Yield Change PCA',
+            height=1000,
+            scene=dict(
+                xaxis=dict(title=x),
+                yaxis=dict(title=y),
+                zaxis=dict(title=z)
+            )
+        )
+    )
+    return fig
