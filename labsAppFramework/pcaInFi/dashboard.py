@@ -210,9 +210,9 @@ def get_eigen_scatter_plot(yield_data, x='2yr', y='7yr', z='30yr'):
                  go.Scatter3d(x=data[x], y=data[y], z=data[z],
                               mode='markers',
                               marker=dict(
-                                  color=color_palette[-1],
+                                  color=color_palette[0],
                                   size=5,
-                                  opacity=0.7),
+                                  opacity=0.5),
                               name='Historic 1D Yield Changes',
                               hovertemplate=hover_template
                               ),
@@ -220,7 +220,7 @@ def get_eigen_scatter_plot(yield_data, x='2yr', y='7yr', z='30yr'):
                                mode='lines',
                                line=dict(
                                    dash='dash',
-                                   color=color_palette[eigen]),
+                                   color=color_palette[eigen+1]),
                                name=f'Eigen Vector {eigen + 1}: '
                                     f'{yield_data.pca.explained_variance.explained_variance[eigen]:.0f}% variance explained',
                                hovertemplate=hover_template
