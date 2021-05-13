@@ -81,6 +81,10 @@ class PcaAnalysis():
         explained_variance = explained_variance.reset_index() \
             .rename(columns={'index': 'eigen_vector', 0: 'explained_variance'}).set_index('eigen_vector')
 
+        #transformed data
+        df_transformed = pd.DataFrame(pca.transform(X))
+        self.data_transformed = df_transformed
+
         self.pca_fitted = pca
         self.eigen_vectors = eigen_vectors
         self.explained_variance = explained_variance
@@ -111,46 +115,3 @@ class YieldData:
 
 
 yield_data = YieldData()
-
-# %%
-
-
-df_eigen_table = yield_data.pca.eigen_vectors
-df_eigen_table = df_eigen_table.divide(df_eigen_table['30yr'], axis=0).round(2)
-
-
-def get_eigen_plot_fig(yield_data, x='2yr', y='7yr', z='30yr'):
-    data = yield_data.data_chg
-    df_eigen_1 = yield_data.pca.get_eigen_plot_data(x, y, z, eigen_value=0)
-    df_eigen_2 = yield_data.pca.get_eigen_plot_data(x, y, z, eigen_value=1)
-
-    fig = go.Figure(
-        data=[
-                 go.Scatter3d(x=data[x], y=data[y], z=data[z],
-                              mode='markers',
-                              marker=dict(
-                                  size=5,
-                                  opacity=0.7),
-                              name='Historic 1D Yield Changes'
-                              ),
-             ] + [go.Scatter3d(x=dataframe[x], y=dataframe[y], z=dataframe[z],
-                               mode='lines',
-                               line=dict(
-                                   dash='dash',
-                                   color=['red', 'blue'][eigen]),
-                               name=f'Eigen Vector {eigen + 1}: {yield_data.pca.explained_variance.explained_variance[eigen]:.0f}% variance explained'
-                               ) for eigen, dataframe in enumerate([df_eigen_1, df_eigen_2])],
-        layout=dict(
-            title='Daily UST Yield Change PCA',
-            scene=dict(
-                xaxis=dict(title=x),
-                yaxis=dict(title=y),
-                zaxis=dict(title=z)
-            )
-        )
-    )
-    return fig
-
-
-fig = get_eigen_plot_fig(yield_data)
-plot(fig)

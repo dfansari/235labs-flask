@@ -9,7 +9,6 @@ import numpy as np
 
 from labsAppFramework.pcaInFi.data import *
 
-
 def create_dataframe_ust():
     df = pd.read_csv("data/ust_data.csv", parse_dates=["date"])
     df["date"] = pd.to_datetime(df["date"].dt.date)
@@ -83,6 +82,10 @@ class PcaAnalysis():
         explained_variance = pd.DataFrame(data=pca.explained_variance_ratio_) * 100
         explained_variance = explained_variance.reset_index() \
             .rename(columns={'index': 'eigen_vector', 0: 'explained_variance'}).set_index('eigen_vector')
+
+        #transformed data
+        df_transformed = pd.DataFrame(pca.transform(X))
+        self.data_transformed = df_transformed
 
         self.pca_fitted = pca
         self.eigen_vectors = eigen_vectors
