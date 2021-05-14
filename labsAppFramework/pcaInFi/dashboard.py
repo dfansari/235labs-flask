@@ -8,7 +8,7 @@ import dash_table
 import pandas as pd
 import plotly.graph_objs as go
 
-from .data import YieldData, convert_ust_tenor_to_years
+from .data import YieldData, convert_ust_tenor_to_years, PcaAnalysis
 from .layout import html_layout
 
 color_palette = ['#420c30', '#b41039', '#d6423b', '#e58637', '#ffb400']
@@ -20,7 +20,7 @@ text_correlation = """To begin with PCA analysis, we first must establish a high
 text_normalization = """Traditionally data would be normalized before applying PCA. Testing yield changes for normal (Gaussian) distribution, however, reveals a high degree of non-stationarity. While annual datasets notably fail testing for non-normal distribution (p-value > 0.05), all tenors produce significant p-values for non-normality tests when looking across multiple years. This means analysis could be done with rolling normalization, but for simplicity, and to mirror real-life risk management using yield-based metrics, I’ve run the PCA using unnormalized yield changes."""
 text_maths = """PCA identifies the orthogonal axes (“Eigenvectors”) onto which your data can be transformed to produce the greatest variance. Here I use a partial example of only [x, y, z] = [2yr, 7yr, 30yr] to allow for 3D visual representation. The original x-axis of 1D change in 2yr yields varies from -45.0 bps to +38bps. The transformed x-axis of the first Eigenvector however varies from -101 to + 103 by accounting for the additional correlated variances of other Tenors. Subsequent Eigenvectors are then calculated orthogonally to the prior by the same process of variance maximization along the new axis. As the data is recast onto these axes, it creates the “Principal Components” of our data as they explain its variance."""
 text_results = """Treasury traders typically only reference the first three Principal components, as they explain a cumulative 82% of Yield Curve variance. Normalizing the Eigenvectors with respect to a +1bp change in the 30year yield shows us their intuitive shapes: (1) A parallel shift in yields, (2) a steepening/flattening of the curve pivoting around the 5yr tenor, and (3) an increase/decrease in curve convexity."""
-text_implications = """Looking at the Yield Curve through the lens of Principal Components can help traders manage their risk, as well as position their portfolio precisely the impact of macroeconomic events. Unscientifically, the first Principal component can be understood as the impact of a broad economic event driving investors to buy or sell US Treasuries, regardless of tenor. Given the second Principal Component’s slope is steepest in the shorter tenors, it can be more closely associated with actions of the Federal Reserve controlling short-term interest rates. The last major Component can be thought of a shifting forecasted position in the economic cycle (i.e. reduced yields in the middle of the curve suggest possible mid-term recession and normalization in the long run). Understandably, these three fundamental drivers of US Treasury pricing are predictable in that order and correspondingly decreasing variance as outlined by PCA."""
+text_implications = """Looking at the Yield Curve through the lens of Principal Components can help traders manage their risk, as well as position their portfolio precisely for the impacts of macroeconomic events. Unscientifically, the first Principal component can be understood as broad economic events driving investors to buy or sell US Treasuries regardless of tenor. Given the second Principal Component’s slope is steepest in the shorter tenors, it can be more closely associated with actions of the Federal Reserve controlling short-term interest rates. The last major Component can be thought of as a shifting forecasted position in the economic cycle (i.e. reduced yields in the middle of the curve suggest possible mid-term recession and normalization in the long run). Understandably, these three fundamental drivers of US Treasury pricing are predictable in that order, and correspond to decreasing explained variance by PCA."""
 
 links_intro = [
     html.A("Credit Suisse: PCA Unleashed", href="https://research-doc.credit-suisse.com/docView?language=ENG&source=emfromsendlink&format=PDF&document_id=1001969281&extdocid=1001969281_1_eng_pdf&serialid=Coz8ZUCgL92gmMydSBULHIsgm%2b9q2TPfBu%2bX1XhViIs%3d"),
@@ -198,9 +198,10 @@ def get_heatmap_plot(data, colorscale=[[0, "rgb(255,255,255)"], [1, "rgb(43, 204
 
 def get_eigen_scatter_plot(yield_data, x='2yr', y='7yr', z='30yr'):
     data = yield_data.data_chg
-    df_eigen_1 = yield_data.pca.get_eigen_plot_data(x, y, z, eigen_value=0)
-    df_eigen_2 = yield_data.pca.get_eigen_plot_data(x, y, z, eigen_value=1)
-    df_eigen_3 = yield_data.pca.get_eigen_plot_data(x, y, z, eigen_value=2)
+    pca = PcaAnalysis(data, tenors=[x,y,z])
+    df_eigen_1 = pca.get_eigen_plot_data(x, y, z, eigen_value=0)
+    df_eigen_2 = pca.get_eigen_plot_data(x, y, z, eigen_value=1)
+    df_eigen_3 = pca.get_eigen_plot_data(x, y, z, eigen_value=2)
 
     hover_template = 'i: %{x:.0f}<br>i: %{y}<br>i: %{z}<extra></extra>' \
         .replace("i", x, 1).replace("i", y, 1).replace("i", z, 1)
@@ -222,7 +223,7 @@ def get_eigen_scatter_plot(yield_data, x='2yr', y='7yr', z='30yr'):
                                    dash='dash',
                                    color=color_palette[eigen+1]),
                                name=f'Eigen Vector {eigen + 1}: '
-                                    f'{yield_data.pca.explained_variance.explained_variance[eigen]:.0f}% variance explained',
+                                    f'{pca.explained_variance.explained_variance[eigen]:.0f}% variance explained',
                                hovertemplate=hover_template
                                ) for eigen, dataframe in enumerate([df_eigen_1, df_eigen_2, df_eigen_3])],
         layout=dict(

@@ -58,19 +58,20 @@ def test_normality_by_year(df_yield_chg, bucketed_years=1):
 
 class PcaAnalysis():
     def __init__(self, data, normalized=False, tenors=None):
-        self.data = data
+        self.data = data.dropna() if tenors is None else data[tenors].dropna()
         self.normalized = normalized
         self.tenors = tenors
 
-        X = data.dropna() if tenors is None else data[tenors].dropna()
+        X = self.data
+        n_comp = len(X.columns)
         if normalized:
             scaler = StandardScaler().fit(X)
             X = scaler.transform(X)
             self.scaler = scaler
 
-        pca = PCA(n_components=5)
+        pca = PCA(n_components=n_comp)
         pca.fit(X)
-        eigen_vectors = pd.DataFrame(pca.components_).rename(columns={i: col for i, col in enumerate(data.columns)})
+        eigen_vectors = pd.DataFrame(pca.components_).rename(columns={i: col for i, col in enumerate(self.data.columns)})
 
         if normalized:
             eigen_vectors_bps = pd.DataFrame(scaler.inverse_transform(eigen_vectors))
@@ -90,9 +91,8 @@ class PcaAnalysis():
         self.explained_variance = explained_variance
 
     def get_eigen_plot_data(self, x, y, z, eigen_value=0):
-        eigen = self.eigen_vectors
-        eigen.loc[0, x]
-        eigen_x = [i for i in range(round(self.data[x].min()), round(self.data[x].max()))]
+        eigen, data = self.eigen_vectors, self.data
+        eigen_x = [i for i in range(round(data[x].min()), round(data[x].max()))]
         eigen_y = [(X / eigen.loc[eigen_value, x]) * eigen.loc[eigen_value, y] for X in eigen_x]
         eigen_z = [(X / eigen.loc[eigen_value, x]) * eigen.loc[eigen_value, z] for X in eigen_x]
         df_eigen = pd.DataFrame(dict(x=eigen_x, y=eigen_y, z=eigen_z))
