@@ -1,10 +1,7 @@
 """Instantiate a Dash app."""
 from datetime import datetime
 
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_table
+from dash import Dash, dcc, html, dash_table
 import pandas as pd
 import plotly.graph_objs as go
 
@@ -31,7 +28,7 @@ links_intro = [
 
 def init_dashboard_pca(server):
     """Create a Plotly Dash dashboard."""
-    dash_app = dash.Dash(
+    dash_app = Dash(
         server=server,
         routes_pathname_prefix="/pca-for-yield-curves/",
         external_stylesheets=[

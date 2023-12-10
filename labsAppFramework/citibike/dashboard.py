@@ -1,10 +1,9 @@
 """Instantiate a Dash app."""
 from datetime import datetime
 
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_table
+from dash import dcc
+from dash import html
+from dash import Dash, dcc, html, Input, Output, callback, dash_table
 import pandas as pd
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
@@ -14,7 +13,7 @@ from .layout import html_layout
 
 def init_dashboard_citibike(server):
     """Create a Plotly Dash dashboard."""
-    dash_app = dash.Dash(
+    dash_app = Dash(
         server=server,
         routes_pathname_prefix="/citibike/",
         external_stylesheets=[
@@ -26,6 +25,13 @@ def init_dashboard_citibike(server):
     # Custom HTML layout
     dash_app.index_string = html_layout
 
+    df_top_stations = pd.read_csv("data/citibike/2023_top_stations_hourly_flows.csv")
+    station_ids = df_top_stations.station_id.astype(str).unique().tolist()
+    station_selector = dcc.Dropdown(
+        id="station-selector", options={id:id for id in station_ids}, value=station_ids[0], multi=False, clearable=False
+    )
+    
+
     # Create Layout
     dash_app.layout = html.Div(
         children=[
@@ -35,10 +41,33 @@ def init_dashboard_citibike(server):
             get_net_flows_heatmap_by_neighborhood(),
             get_monthly_total_flows_by_neighborhood(),
             html.H1("Station Data"),
-            graph_station_hourly_trends(station_id="4395.07")
+            html.Div([station_selector]),
+            html.Div([graph_station_hourly_trends(station_id=station_ids[0])], id="station-hourly-div"),
+            html.Div([
+                "Input: ",
+                dcc.Input(id='my-input', value='initial value', type='text')
+            ]),
+            html.Br(),
+            html.Div(id='my-output'),
         ],
         id="dash-container",
     )
+
+    @dash_app.callback(
+        Output(component_id='my-output', component_property='children'),
+        Input(component_id='my-input', component_property='value')
+    )
+    def update_output_div(input_value):
+        return f'Output: {input_value}'
+
+    
+    @dash_app.callback(
+        Output(component_id='station-hourly-div', component_property='children'),
+        Input(component_id='station-selector', component_property='value')
+    )
+    def update_station_hourly(input_station_id):
+        return graph_station_hourly_trends(station_id=input_station_id)
+
     return dash_app.server
 
 
@@ -179,10 +208,10 @@ def get_monthly_total_flows_by_neighborhood():
     )
     return graph_monthly_neighborhood
 
-def graph_station_hourly_trends(station_id="4395.07"):
+def graph_station_hourly_trends(station_id):
     # get station data
-    df_top_stations = pd.read_csv("/data/citibike/2023_top_stations_hourly_flows.csv")
-    df_station_metadata = pd.read_csv("/data/citibike/2023_station_summary.csv")
+    df_top_stations = pd.read_csv("data/citibike/2023_top_stations_hourly_flows.csv")
+    df_station_metadata = pd.read_csv("data/citibike/2023_station_summary.csv")
 
     string_cols = ["station_id", "neighborhood"]
     timestamp_cols = ["ride_time"]
@@ -238,3 +267,5 @@ def graph_station_hourly_trends(station_id="4395.07"):
         figure=fig
     )
     return graph_station_hourly
+
+

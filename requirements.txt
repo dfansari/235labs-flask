@@ -1,10 +1,10 @@
 brotli==1.0.9; python_version >= "2.7" and python_full_version < "3.0.0" or python_full_version >= "3.3.0"
 click==7.1.2; python_version >= "2.7" and python_full_version < "3.0.0" or python_full_version >= "3.5.0"
-dash-core-components==1.14.0
-dash-html-components==1.1.1
+dash-core-components==2.0.0
+dash-html-components==2.0.0
 dash-renderer==1.8.3
-dash-table==4.11.1
-dash==1.18.0; (python_version >= "2.7" and python_full_version < "3.0.0") or (python_full_version >= "3.3.0")
+dash==2.14.2; (python_version >= "2.7" and python_full_version < "3.0.0") or (python_full_version >= "3.3.0")
+dash-table==5.0.0
 ddtrace==0.44.0; (python_version >= "2.7" and python_full_version < "3.0.0") or (python_full_version >= "3.5.0")
 flask-assets==2.0
 flask-compress==1.8.0; python_version >= "2.7" and python_full_version < "3.0.0" or python_full_version >= "3.3.0"
@@ -19,7 +19,7 @@ markupsafe==1.1.1; python_version >= "2.7" and python_full_version < "3.0.0" or 
 nbformat==5.9.2
 numpy==1.19.4; python_version >= "3.6" and python_full_version >= "3.6.1"
 pandas==1.1.5; python_full_version >= "3.6.1"
-plotly==4.14.0; python_version >= "2.7" and python_full_version < "3.0.0" or python_full_version >= "3.3.0"
+plotly==5.18.0; python_version >= "2.7" and python_full_version < "3.0.0" or python_full_version >= "3.3.0"
 protobuf==3.14.0; python_version >= "2.7" and python_full_version < "3.0.0" or python_full_version >= "3.5.0"
 # python-dateutil==2.8.1; python_full_version >= "3.6.1"
 python-dotenv==0.15.0
