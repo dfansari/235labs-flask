@@ -16,9 +16,11 @@ def init_app():
         from .assets import compile_static_assets
 
         # Import Dash application
-        from .pcaInFi.dashboard import init_dashboard
+        from .pcaInFi.dashboard import init_dashboard_pca
+        from .citibike.dashboard import init_dashboard_citibike
 
-        app = init_dashboard(app)
+        app = init_dashboard_pca(app)
+        app = init_dashboard_citibike(app)
 
         # Compile static assets
         compile_static_assets(assets)

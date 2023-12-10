@@ -10,7 +10,7 @@ import numpy as np
 from labsAppFramework.pcaInFi.data import *
 
 def create_dataframe_ust():
-    df = pd.read_csv("data/ust_data.csv", parse_dates=["date"])
+    df = pd.read_csv("data/pca/ust_data.csv", parse_dates=["date"])
     df["date"] = pd.to_datetime(df["date"].dt.date)
     df = df.loc[:, df.columns != '2mo']
     # df.replace("N/A", np.nan, inplace=True)
