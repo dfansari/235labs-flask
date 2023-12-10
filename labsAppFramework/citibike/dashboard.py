@@ -83,7 +83,8 @@ def init_dashboard_citibike(server):
     text_station_prediction = """
         The below visualizes historic hourly outflows from the station, as well as a regression-predicted outflow for this current hour. 
         Not all station models are equally predictive based on data availability, so the right hand side shows the R Squared of the 
-        station-specific regression vs. the R Squared's of other stations.
+        station-specific regression vs. the R Squared's of other stations. Regressions have been done on a per-station basis, as
+        much of the outflows are attributed to relatively unique properties. Within a station regression, day of week, month and hour of day are features.
     """
 
     # Create Layout
