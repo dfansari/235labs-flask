@@ -29,7 +29,7 @@ links_intro = [
            href="https://www.newyorkfed.org/medialibrary/media/research/staff_reports/sr884.pdf")
 ]
 
-def init_dashboard(server):
+def init_dashboard_pca(server):
     """Create a Plotly Dash dashboard."""
     dash_app = dash.Dash(
         server=server,
