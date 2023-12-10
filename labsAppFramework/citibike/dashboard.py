@@ -443,7 +443,7 @@ def get_model_prediction_graph(station_id):
     now = datetime.datetime.now(tz) 
 
     df_curr_data = pd.DataFrame(dict(
-        month=[now.month], weekday=[now.month], hour=[now.hour], 
+        month=[now.month], weekday=[now.weekday], hour=[now.hour], 
     ))
     pred_outbound_traffic = model.predict(df_curr_data)
 
