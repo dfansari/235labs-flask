@@ -7,6 +7,7 @@ import dash_html_components as html
 import dash_table
 import pandas as pd
 import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 import json
 
 from .layout import html_layout
@@ -34,6 +35,7 @@ def init_dashboard_citibike(server):
             get_net_flows_heatmap_by_neighborhood(),
             get_monthly_total_flows_by_neighborhood(),
             html.H1("Station Data"),
+            graph_station_hourly_trends(station_id="4395.07")
         ],
         id="dash-container",
     )
@@ -51,7 +53,7 @@ def get_map_chart():
     )
 
 
-    def calibrate_size(x, scale_factor=0.4, max_size=5):
+    def calibrate_size(x, scale_factor=0.25, max_size=5):
         return (x**scale_factor / max(x**scale_factor)) * max_size
 
     fig = go.Figure(
@@ -177,3 +179,62 @@ def get_monthly_total_flows_by_neighborhood():
     )
     return graph_monthly_neighborhood
 
+def graph_station_hourly_trends(station_id="4395.07"):
+    # get station data
+    df_top_stations = pd.read_csv("/data/citibike/2023_top_stations_hourly_flows.csv")
+    df_station_metadata = pd.read_csv("/data/citibike/2023_station_summary.csv")
+
+    string_cols = ["station_id", "neighborhood"]
+    timestamp_cols = ["ride_time"]
+    float_cols = ["outbound_rides", "inbound_rides", "total_rides", "net_rides", "month", "hour"]
+
+    for col in string_cols:
+        df_top_stations[col] = df_top_stations[col].astype(str)
+    for col in timestamp_cols:
+        df_top_stations[col] = pd.to_datetime(df_top_stations[col])
+    for col in float_cols:
+        df_top_stations[col] = df_top_stations[col].astype(float)
+
+    df_station_metadata["station_id"] = df_station_metadata["station_id"].astype(str)
+
+    # subset station data
+    df_station_data = df_top_stations.loc[df_top_stations.station_id == station_id]
+    df_station_hourly = df_station_data.groupby(by="hour")[["total_rides", "net_rides"]].agg(["mean", "std"])
+
+    # plot
+    fig = make_subplots(rows=1, cols=2, subplot_titles=["Hourly Total Rides", "Hourly Net Rides"])
+
+    fig.add_trace(
+        go.Bar(
+            x=df_station_hourly.index,
+            y=df_station_hourly["total_rides"]["mean"],
+            error_y=dict(type="data", array=df_station_hourly["total_rides"]["std"]),
+            name="Avg Total Rides / Hour",
+            marker=dict(color="gray")
+        ),
+        row=1, col=1
+    )
+    fig.update_xaxes(title="Hour", row=1, col=1)
+    fig.update_yaxes(title="Avg Total Rides / Hour", row=1, col=1)
+
+    for is_positive in [True, False]:
+        fig.add_trace(
+            go.Bar(
+                x=df_station_hourly.loc[(df_station_hourly.net_rides["mean"] >= 0) == is_positive].index,
+                y=df_station_hourly.loc[(df_station_hourly.net_rides["mean"] >= 0) == is_positive]["net_rides"]["mean"],
+                error_y=dict(type="data", array=df_station_hourly["net_rides"]["std"]),
+                name="Avg Net Flows / Hour",
+                showlegend=is_positive,
+                marker=dict(color="rgb(81, 174, 245)" if is_positive else "rgb(232, 63, 91)")
+            ),
+            row=1, col=2
+        )
+
+    fig.update_xaxes(title="Hour", row=1, col=2)
+    fig.update_yaxes(title="Avg Net Rides / Hour", row=1, col=2)
+
+    graph_station_hourly = dcc.Graph(
+        id="graph-station-hourly",
+        figure=fig
+    )
+    return graph_station_hourly
