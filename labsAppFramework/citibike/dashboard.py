@@ -43,22 +43,9 @@ def init_dashboard_citibike(server):
             html.H1("Station Data"),
             html.Div([station_selector]),
             html.Div([graph_station_hourly_trends(station_id=station_ids[0])], id="station-hourly-div"),
-            html.Div([
-                "Input: ",
-                dcc.Input(id='my-input', value='initial value', type='text')
-            ]),
-            html.Br(),
-            html.Div(id='my-output'),
         ],
         id="dash-container",
     )
-
-    @dash_app.callback(
-        Output(component_id='my-output', component_property='children'),
-        Input(component_id='my-input', component_property='value')
-    )
-    def update_output_div(input_value):
-        return f'Output: {input_value}'
 
     
     @dash_app.callback(
