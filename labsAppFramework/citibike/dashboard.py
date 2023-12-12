@@ -114,7 +114,7 @@ def init_dashboard_citibike(server):
             html.Div([graph_station_hourly_trends(station_id=init_station_id)], id="station-hourly-div"),
             html.H3("Predicted Station Flows"),
             html.P(text_station_prediction),
-            html.Div([get_model_prediction_graph(station_id=init_station_id)], id="station-model-div"),
+            html.Div([get_model_prediction_graph(station_id=init_station_id, now=datetime.datetime.now(timezone('US/Eastern')))], id="station-model-div"),
         ],
         id="dash-container",
     )
@@ -135,10 +135,10 @@ def init_dashboard_citibike(server):
 
     @dash_app.callback(
         Output(component_id='station-model-div', component_property='children'),
-        Input(component_id='station-selector', component_property='value')
+        Input(component_id='station-selector', component_property='value'),
     )
-    def update_station_model(input_station_id):
-        graph = get_model_prediction_graph(station_id=input_station_id)
+    def update_station_model(input_station_id, now):
+        graph = get_model_prediction_graph(station_id=input_station_id, now=datetime.datetime.now(timezone('US/Eastern')))
         if graph is not None:
             return graph
         else:
@@ -421,7 +421,7 @@ def get_station_metadata_and_status(station_id):
 
     return table
 
-def get_model_prediction_graph(station_id):
+def get_model_prediction_graph(station_id, now):
     # load model data
     filehandler = open("data/citibike/models_dict.pkl",'rb')
     station_models_dict = pickle.load(filehandler)
@@ -439,9 +439,6 @@ def get_model_prediction_graph(station_id):
     r_2 = station_models_dict[station_id]["r_2"]
 
     # get current prediction
-    tz = timezone('US/Eastern')
-    now = datetime.datetime.now(tz) 
-
     df_curr_data = pd.DataFrame(dict(
         month=[now.month], weekday=[now.weekday], hour=[now.hour], 
     ))
