@@ -2,6 +2,7 @@
 from flask import current_app as app
 from flask import render_template
 
+
 @app.route("/projects")
 def home():
     """Landing page."""
@@ -9,8 +10,9 @@ def home():
         "projects.jinja2",
         title="Dan Ansari",
         description="Data Science for Finance and Beyond",
-        template="home-template"
+        template="home-template",
     )
+
 
 @app.route("/")
 def about_me():
@@ -19,5 +21,5 @@ def about_me():
         "aboutme.jinja2",
         title="About Me",
         description="Data Science for Finance and Beyond",
-        template="home-template"
+        template="home-template",
     )

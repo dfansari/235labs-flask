@@ -14,10 +14,9 @@ def init_app():
         # Import parts of our core Flask app
         from . import routes
         from .assets import compile_static_assets
-
+        from .citibike.dashboard import init_dashboard_citibike
         # Import Dash application
         from .pcaInFi.dashboard import init_dashboard_pca
-        from .citibike.dashboard import init_dashboard_citibike
 
         app = init_dashboard_pca(app)
         app = init_dashboard_citibike(app)
