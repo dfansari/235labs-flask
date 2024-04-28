@@ -1,5 +1,4 @@
-# import matplotlib.pyplot as plt
-# import seaborn as sns
+""" File to perform PCA analysis on UST data """
 
 import plotly.graph_objs as go
 from plotly.offline import plot
